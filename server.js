@@ -28,7 +28,7 @@ function initial() {
         type: "list",
         name: "initial",
         message: "What would you like to do?",
-        choices: ["Add departments, roles, or employees.", "View departments, roles, or employees.", "Update departments, roles, or employees.", "Delete departments, roles, or employees.", "Exit"]
+        choices: ["Add departments, roles, or employees.", "View departments, roles, or employees.", "Update employees.", "Exit"]
     }).then(function(answer) {
         switch (answer.initial){
         case "Add departments, roles, or employees.":
@@ -39,12 +39,8 @@ function initial() {
             viewer();
             break;
         
-        case "Update departments, roles, or employees.":
+        case "Update employees.":
             update();
-            break;
-        
-        case "Delete departments, roles, or employees.":
-            del();
             break;
 
         case "Exit":
@@ -80,13 +76,13 @@ function add() {
             connection.query("INSERT INTO department (name) VALUES (?)", [response.Dep], function(err, data) {
                 if (err) throw err;
                 console.log("Department successfully added!")
+                initial()
             })
         })
     }
     function addRole() {
         connection.query("SELECT * FROM department", function(err, res) {
             var departments = res
-            console.log(res)
         inquirer.prompt([
             {
                 type: "input",
@@ -105,11 +101,10 @@ function add() {
             choices: departments
             }
         ]).then((response) => {
-            console.log(response.list)
             connection.query("SELECT id FROM department WHERE ?", {name: response.list}, function(err, res) {
-                console.log(res[0].id)
                 connection.query("INSERT INTO role SET ?", {title: response.addRole, salary: response.salary, department_id: res[0].id}, function(err, res) {
                     console.log("Role Successfully added!")
+                    initial()
                 })
             })
         })
@@ -117,7 +112,6 @@ function add() {
     }
     function addEmp() {
         connection.query("SELECT id, title AS name FROM role", function(err, res) {
-            console.log(res)
             var roles = res
         inquirer.prompt([
             {
@@ -142,10 +136,8 @@ function add() {
                 message: "Does this employee have a mananger?"
             }
         ]).then((response) => {
-            console.log(response)
             if (response.manager){
                 connection.query("SELECT first_name, last_name FROM employee", function(err, res) {
-                    console.log(res)
                     var employees = res.map(function(employee) {
                         return {name: `${employee.first_name} ${employee.last_name}`}
                     })
@@ -158,15 +150,14 @@ function add() {
                         }
                     ]).then((resp) => {
                         connection.query("SELECT id FROM role WHERE ?", {title: response.list}, function(err, res) {
-                            console.log(res)
                             var roleId = res[0].id
 
                             var names = resp.managerList.split(" ")
                         connection.query("SELECT id FROM employee WHERE ? AND ?", [{first_name: names[0]}, {last_name: names[1]}], function(err, res) {
                             var managerId = res[0].id
-                            console.log(response.firstName, response.lastName, roleId, managerId)
                             connection.query("INSERT INTO employee SET ?", {first_name: response.firstName, last_name: response.lastName, role_id: roleId, manager_id: managerId}, function(err, res) {
-                                console.log(res)
+                                console.log("Employee successfully added.")
+                                initial()
                             })
                         })
                         })
@@ -176,10 +167,10 @@ function add() {
 
             }else{
                 connection.query("SELECT id FROM role WHERE ?", {title: response.list}, function(err, res) {
-                    console.log(res)
                     var roleId = res[0].id
                     connection.query("INSERT INTO employee SET ?", {first_name: response.firstName, last_name: response.lastName, role_id: roleId}, function(err, res) {
-                        console.log(res)
+                        console.log("Employee successfully added.")
+                        initial()
                     })
                 })
             }
@@ -198,7 +189,7 @@ function viewer() {
         if(response.viewer === "Roles"){
             roles()
         }
-        if(response.viewer === "Departments") {
+        else if(response.viewer === "Departments") {
             departments()
         }
         else {
@@ -210,20 +201,23 @@ function viewer() {
 function roles() {
     connection.query("SELECT * FROM role", function(err, res) {
         if (err) throw err;
-        console.log(res)
+        console.table(res)
+        initial()
+
     })
 }
 
 function departments() {
     connection.query("SELECT * FROM department", function(err, res) {
-        console.log(res)
-        res.json()
+        console.table(res)
+        initial()
     })
 }
 
 function employees() {
     connection.query("SELECT * FROM employee", function(err, res) {
-        console.log(res)
+        console.table(res)
+        initial()
     })
 }
 
@@ -233,7 +227,6 @@ function update() {
         var Names = employee.map((item)=> {
             return `${item.first_name} ${item.last_name}`
         })
-        console.log(Names)
         inquirer.prompt([
             {
                 type: "list",
@@ -272,6 +265,7 @@ function update() {
                             ],
                             function(err, res) {
                               if (err) throw err;
+                              initial()
                             }
                         )
                     })
